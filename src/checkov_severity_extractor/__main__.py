@@ -75,7 +75,7 @@ def main() -> None:
             processing=ProcessingConfig(
                 max_concurrent_files=args.max_workers,
                 file_extensions=[".adoc"],
-                excluded_patterns=["*index*", "*policies.adoc"],
+                excluded_patterns=["**/index.adoc", "*policies.adoc"],
                 max_file_size_mb=10.0,
                 timeout_seconds=30.0,
             ),
