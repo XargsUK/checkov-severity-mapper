@@ -1,0 +1,138 @@
+name: Extract Checkov Severity Mappings
+
+on:
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: "Create a new release with the mappings file"
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  extract-mappings:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+
+      - name: Clone Prisma Cloud Docs
+        run: |
+          git clone --depth 1 https://github.com/hlxsites/prisma-cloud-docs.git external-docs
+          echo "Cloned docs repo, checking structure..."
+          ls -la external-docs/
+          if [ -d "external-docs/docs/en/enterprise-edition/policy-reference" ]; then
+            echo "✓ Found policy-reference directory"
+            ls -la external-docs/docs/en/enterprise-edition/policy-reference/ | head -10
+          else
+            echo "⚠️  Policy-reference directory not found, listing available directories:"
+            find external-docs -name "*policy*" -type d | head -10
+          fi
+
+      - name: Install Python dependencies
+        run: uv sync
+
+      - name: Extract Checkov severity mappings
+        run: |
+          uv run python -m checkov_severity_extractor \
+            --docs-dir external-docs/docs/en/enterprise-edition/policy-reference \
+            --output checkov_severity_mappings.json \
+            --max-workers 2 \
+            --quiet
+
+          echo "Extraction completed. File info:"
+          ls -lh checkov_severity_mappings.json
+
+      - name: Generate metadata
+        id: metadata
+        run: |
+          # Generate timestamp
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+          # Count mappings
+          MAPPING_COUNT=$(jq '. | length' checkov_severity_mappings.json)
+          echo "mapping_count=$MAPPING_COUNT" >> $GITHUB_OUTPUT
+
+          # Generate version tag
+          VERSION_TAG="v$(date -u +"%Y.%m.%d-%H%M")"
+          echo "version_tag=$VERSION_TAG" >> $GITHUB_OUTPUT
+
+          # Calculate file hash for integrity
+          FILE_HASH=$(sha256sum checkov_severity_mappings.json | cut -d' ' -f1)
+          echo "file_hash=$FILE_HASH" >> $GITHUB_OUTPUT
+
+          echo "Generated metadata:"
+          echo "  Timestamp: $TIMESTAMP"
+          echo "  Mapping Count: $MAPPING_COUNT"
+          echo "  Version Tag: $VERSION_TAG"
+          echo "  File Hash: $FILE_HASH"
+
+      - name: Create release info file
+        run: |
+          cat > release_info.json << EOF
+          {
+            "version": "${{ steps.metadata.outputs.version_tag }}",
+            "generated_at": "${{ steps.metadata.outputs.timestamp }}",
+            "mapping_count": ${{ steps.metadata.outputs.mapping_count }},
+            "file_hash": "${{ steps.metadata.outputs.file_hash }}",
+            "source_repo": "https://github.com/hlxsites/prisma-cloud-docs",
+            "extractor_version": "1.0.0"
+          }
+          EOF
+
+      - name: Upload mappings as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-severity-mappings
+          path: |
+            checkov_severity_mappings.json
+            release_info.json
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: ${{ inputs.create_release != 'false' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.metadata.outputs.version_tag }}
+          name: "Checkov Severity Mappings ${{ steps.metadata.outputs.version_tag }}"
+          body: |
+            ## Checkov Severity Mappings
+
+            **Generated:** ${{ steps.metadata.outputs.timestamp }}  
+            **Total Mappings:** ${{ steps.metadata.outputs.mapping_count }}  
+            **File Hash (SHA256):** `${{ steps.metadata.outputs.file_hash }}`
+
+            This release contains the latest Checkov ID to severity mappings extracted from the [Prisma Cloud documentation](https://github.com/hlxsites/prisma-cloud-docs).
+
+            ### Files
+            - `checkov_severity_mappings.json` - The main mappings file for VSCode extensions
+            - `release_info.json` - Metadata about this release
+
+            ### Usage
+            VSCode extensions can download this file using:
+            ```
+            https://github.com/${{ github.repository }}/releases/download/${{ steps.metadata.outputs.version_tag }}/checkov_severity_mappings.json
+            ```
+
+            ### Version Checking
+            Extensions can check for updates by comparing the `generated_at` timestamp or `file_hash` from the `release_info.json` file.
+          files: |
+            checkov_severity_mappings.json
+            release_info.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
