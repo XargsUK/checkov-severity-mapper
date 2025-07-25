@@ -136,3 +136,11 @@ class LoggerMixin:
         if context:
             msg += f" ({context})"
         self.logger.warning(msg)
+
+    def log_debug(self, message: str, **kwargs) -> None:
+        """Log a debug message with context."""
+        context = ", ".join(f"{k}={v}" for k, v in kwargs.items())
+        msg = message
+        if context:
+            msg += f" ({context})"
+        self.logger.debug(msg)

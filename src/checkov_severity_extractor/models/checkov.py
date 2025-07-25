@@ -56,11 +56,11 @@ class CheckovId(BaseModel):
 
     # Validation patterns for different Checkov ID formats
     PATTERNS: ClassVar[list[re.Pattern]] = [
-        re.compile(r"^(CKV)_([A-Z]+)_(\d+)$"),  # CKV_AWS_123
-        re.compile(r"^(CKV2)_([A-Z]+)_(\d+)$"),  # CKV2_GCP_45
-        re.compile(r"^(CKV3)_([A-Z]+)_(\d+)$"),  # CKV3_SAST_96
-        re.compile(r"^(CKV)_([A-Z]+)_([A-Z0-9_]+)$"),  # CKV_OPENAPI_20
-        re.compile(r"^(BC)_([A-Z]+)_(\d+)$"),  # BC_LIC_3
+        re.compile(r"^(CKV)_([A-Z0-9]+)_(\d+)$"),  # CKV_AWS_123, CKV_K8S_40
+        re.compile(r"^(CKV2)_([A-Z0-9]+)_(\d+)$"),  # CKV2_GCP_45
+        re.compile(r"^(CKV3)_([A-Z0-9]+)_(\d+)$"),  # CKV3_SAST_96
+        re.compile(r"^(CKV)_([A-Z0-9]+)_([A-Z0-9_]+)$"),  # CKV_OPENAPI_20
+        re.compile(r"^(BC)_([A-Z0-9]+)_(\d+)$"),  # BC_LIC_3
     ]
 
     @classmethod

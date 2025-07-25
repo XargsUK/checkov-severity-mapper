@@ -61,6 +61,12 @@ class RegexPatternMatcher(PatternMatcher):
         # Checkov ID patterns (ordered by priority)
         default_checkov_patterns = [
             CheckovPattern(
+                name="github_link_with_checkov_id",
+                pattern=r"\|Checkov ID\s*\n\s*\|\s*https?://.*?\[([A-Z0-9_]+)\]",
+                priority=7,
+                description="GitHub link with Checkov ID in square brackets",
+            ),
+            CheckovPattern(
                 name="checkov_multiline_table",
                 pattern=r"\|Checkov ID\s*\n\s*\|\s*([A-Z0-9_]+)",
                 priority=6,

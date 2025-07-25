@@ -97,16 +97,40 @@ class ExtractionConfig(BaseModel):
         """Create default extraction patterns."""
         return [
             CheckovPattern(
+                name="github_link_with_checkov_id",
+                pattern=r"\|Checkov ID\s*\n\s*\|\s*https?://.*?\[([A-Z0-9_]+)\]",
+                priority=7,
+                description="GitHub link with Checkov ID in square brackets",
+            ),
+            CheckovPattern(
+                name="checkov_multiline_table",
+                pattern=r"\|Checkov ID\s*\n\s*\|\s*([A-Z0-9_]+)",
+                priority=6,
+                description="Multi-line table format (SAST policies)",
+            ),
+            CheckovPattern(
                 name="standard_table_format",
                 pattern=r"\|Checkov ID\s*\n\s*\|\s*.*?\[([A-Z0-9_]+)\]",
-                priority=3,
+                priority=5,
                 description="Standard AsciiDoc table format with link",
             ),
             CheckovPattern(
                 name="simple_table_format",
                 pattern=r"\|Checkov ID\s*\|\s*([A-Z0-9_]+)",
-                priority=2,
+                priority=4,
                 description="Simple table format without link",
+            ),
+            CheckovPattern(
+                name="checkov_field_multiline",
+                pattern=r"Checkov ID\s*:?\s*\n\s*([A-Z0-9_]+)",
+                priority=3,
+                description="Checkov ID field on separate line",
+            ),
+            CheckovPattern(
+                name="checkov_field_inline",
+                pattern=r"Checkov ID\s*:?\s*([A-Z0-9_]+)",
+                priority=2,
+                description="Inline Checkov ID field",
             ),
             CheckovPattern(
                 name="bracketed_id",
@@ -128,7 +152,7 @@ class ExtractionConfig(BaseModel):
             ),
         ]
 
-    def __post_init__(self):
+    def model_post_init(self, __context):
         """Post-initialization setup."""
         if not self.patterns:
             self.patterns = self.create_default_patterns()

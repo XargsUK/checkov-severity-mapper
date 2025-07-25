@@ -84,6 +84,10 @@ class CheckovSeverityExtractor(LoggerMixin):
             # Initialise pattern matcher with config patterns
             if config.patterns:
                 self.pattern_matcher.load_patterns(config.patterns)
+            else:
+                # Load default patterns from config if none provided
+                default_patterns = ExtractionConfig.create_default_patterns()
+                self.pattern_matcher.load_patterns(default_patterns)
 
             # Configure file scanner for this extraction
             self.file_scanner = self._configure_file_scanner(config)
